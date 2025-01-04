@@ -9,14 +9,14 @@
       font-family: Arial, sans-serif;
       margin: 0;
       padding: 0;
-      background: linear-gradient(to right, #6a11cb, #2575fc); /* Gradient background */
+      background: linear-gradient(to right, #6a11cb, #2575fc);
       display: flex;
       justify-content: center;
       align-items: center;
       min-height: 100vh;
     }
     .container {
-      background-color: rgba(255, 255, 255, 0.9); /* Semi-transparent white background */
+      background-color: rgba(255, 255, 255, 0.9);
       padding: 20px;
       box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
       border-radius: 8px;
@@ -94,7 +94,8 @@
       "evaluator2", "ahCounter", "grammarian", "timer"
     ];
 
-    // Calculate the next three Fridays
+    const appScriptUrl = 'https://script.google.com/macros/s/AKfycbyMaCrP0SWFhjD27mMekKCwJaaLaBp87yL49PZtJS1XcDDaXUdjM7lX4TH9UW2kcuEL/exec';
+
     function getNextFridays() {
       const dates = [];
       const today = new Date();
@@ -110,7 +111,13 @@
 
     const fridays = getNextFridays();
 
-    function createForm(date) {
+    async function fetchData() {
+      const response = await fetch(appScriptUrl);
+      const data = await response.json();
+      return data;
+    }
+
+    function createForm(date, data) {
       return `
         <h1>Signup Form ${date}</h1>
         <div class="nav-buttons">
@@ -118,11 +125,11 @@
           <button class="nav-button" id="nextButton" ${currentForm === fridays.length - 1 ? 'disabled' : ''}>Next</button>
         </div>
         <form id="signupForm${date}">
-          ${roles.map(role => `
+          ${roles.map((role, index) => `
             <div class="form-group">
               <label for="${role}${date}">${role.charAt(0).toUpperCase() + role.slice(1).replace(/([A-Z])/g, ' $1')}:</label>
               <select id="${role}${date}" name="${role}" required>
-                ${people.map(person => `<option value="${person}">${person}</option>`).join('')}
+                ${people.map(person => `<option value="${person}" ${data && data[index + 1] === person ? 'selected' : ''}>${person}</option>`).join('')}
               </select>
             </div>
           `).join('')}
@@ -134,8 +141,9 @@
     const formContainer = document.getElementById('formContainer');
     let currentForm = 0;
 
-    function showForm(index) {
-      formContainer.innerHTML = createForm(fridays[index]);
+    async function showForm(index) {
+      const data = await fetchData();
+      formContainer.innerHTML = createForm(fridays[index], data);
       const prevButton = document.getElementById('prevButton');
       const nextButton = document.getElementById('nextButton');
       
@@ -163,7 +171,7 @@
           formData[role] = form[role + fridays[index]].value;
         });
 
-        const response = await fetch('<YOUR_APPS_SCRIPT_DEPLOYMENT_URL>', {
+        const response = await fetch(appScriptUrl, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'
@@ -175,6 +183,7 @@
         if (result.result === 'success') {
           alert('Signup successful!');
           form.reset();
+          showForm(currentForm);
         } else {
           alert('There was an error. Please try again.');
         }
